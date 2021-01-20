@@ -35,6 +35,8 @@ void setup() {
     Serial.begin(9600);
     dht.begin();
 
+    //espRemote.setSendInterval(5000);
+    //espRemote.setBufferInterval(600000);
     espRemote.initServer();
     //espRemote.setPublishEndpoint("cabin.local", "/homeServer/logEnv?envJson=");
     Serial.println("ESP Config " + espRemote.getConfig());

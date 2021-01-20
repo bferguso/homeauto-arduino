@@ -23,8 +23,10 @@ void setup() {
     Serial.begin(9600);
     // We start by connecting to a WiFi network
 
+    //espRemote.setSendInterval(5000);
+    //espRemote.setBufferInterval(600000);
     espRemote.initServer();
-    //espRemote.setPublishEndpoint("cabin.local", "/homeServer/logEnv?envJson=");
+
     Serial.println("ESP Config "+espRemote.getConfig());
 
     delay(100);
