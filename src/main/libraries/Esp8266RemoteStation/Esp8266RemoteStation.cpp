@@ -49,6 +49,9 @@ void Esp8266RemoteStation::initServer(char *ssid, char *password) {
     _server.on("/updateConfig", std::bind(&Esp8266RemoteStation::updateConfig, this));
     Serial.println("Registered path: /updateConfig");
 
+    _server.on("/flushBuffer", std::bind(&Esp8266RemoteStation::flushBuffer, this));
+    Serial.println("Registered path: /flushBuffer");
+
     _server.on("/getConfig", [this]() { _server.send(200, "text/plain", getConfig()); });
     Serial.println("Registered path: /getConfig");
 
@@ -72,6 +75,19 @@ String Esp8266RemoteStation::getConfig() {
            + JsonEncoder::append(JsonEncoder::wrapValue("netmask", String(WiFi.subnetMask().toString())))
            + JsonEncoder::append(JsonEncoder::wrapValue("gateway", String(WiFi.gatewayIP().toString())))
            + JsonEncoder::closeBrace;
+}
+
+void Esp8266RemoteStation::flushBuffer()
+{
+    int responseCode = 200;
+    String flushPostResponse = flushBufferedEnvData();
+    if (flushPostResponse.length() == 0)
+    {
+        responseCode = 400;
+        flushPostResponse = "{\"success\": false}";
+    }
+    //Serial.println("Response: "+flushPostResponse);
+    _server.send(responseCode, "application/json", flushPostResponse);
 }
 
 void Esp8266RemoteStation::setPublishEndpoint(String host, String url)
@@ -261,21 +277,24 @@ bool Esp8266RemoteStation::bufferEnvData(EnvData *data)
     return true;
 }
 
-void Esp8266RemoteStation::flushBufferedEnvData()
+String Esp8266RemoteStation::flushBufferedEnvData()
 {
+    String response;
     if (_bufferInterval == 0 || _envQueue.isEmpty())
     {
         Serial.println("Not trying to flush buffer");
-        return;
+        return String("");
     }
     Serial.println("Trying to flush buffer");
     String data = getBufferedEnvJson();
     if (data)
     {
-        String *response = sendHttpPost(_envPublishHost, 80, _envPublishBufferedUrl, &data);
+        response = sendHttpPost(_envPublishHost, 80, _envPublishBufferedUrl, &data);
+        Serial.println("Buffer size "+response.length());
+        Serial.println("flushBufferedEnvData response: "+response);
     }
-
     _lastBufferFlush = millis();
+    return response;
 }
 
 String Esp8266RemoteStation::sendHttpRequest(String host, int port, String request) { // Use WiFiClient class to create TCP connections
@@ -307,13 +326,13 @@ String Esp8266RemoteStation::sendHttpRequest(String host, int port, String reque
     return response;
 }
 
-String* Esp8266RemoteStation::sendHttpPost(String host, int port, String url, String* payload) {
+String Esp8266RemoteStation::sendHttpPost(String host, int port, String url, String* payload) {
     // Use WiFiClient class to create TCP connections
     WiFiClient client;
 
     if (!client.connect(host, port)) {
         Serial.println("connection failed");
-        return false;
+        return "";
     }
     Serial.println("Connected!");
 
@@ -325,12 +344,11 @@ String* Esp8266RemoteStation::sendHttpPost(String host, int port, String url, St
     Serial.println(httpCode);
     delay(500);
     String responseString = http.getString();
-    Serial.println(responseString);
-    Serial.println("");
+    Serial.println("Response(String)"+responseString);
     Serial.println("After POST...");
-    Serial.println();
     Serial.println("closing connection");
-    return &responseString;
+    Serial.println();
+    return responseString;
 }
 
 void Esp8266RemoteStation::handleClient() {

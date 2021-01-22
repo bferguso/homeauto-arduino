@@ -26,11 +26,14 @@ public:
     void sendEnv(EnvData data);
     void printEnv(EnvData data);
     String sendHttpRequest(String host, int port, String request);
-    String* sendHttpPost(String host, int port, String url, String *payload);
+    String sendHttpPost(String host, int port, String url, String *payload);
     bool readyToSendEnv();
     bool readyToPrint();
+
+    // Web API functions
     void updateConfig();
     String getConfig();
+    void flushBuffer();
 
 private:
     const int _maxQueueSize = 12 * 60 + 1; // 1h @ 5s per sample + 1
@@ -71,7 +74,7 @@ private:
     bool bufferEnabled();
     bool shouldFlushBuffer();
     bool bufferEnvData(EnvData *data);
-    void flushBufferedEnvData();
+    String flushBufferedEnvData();
     // Get JSON for all buffered readings
     String getBufferedEnvJson();
 };
