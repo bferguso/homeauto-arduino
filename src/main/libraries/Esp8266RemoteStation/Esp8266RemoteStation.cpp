@@ -165,7 +165,8 @@ void Esp8266RemoteStation::updateConfig() {
 
 String Esp8266RemoteStation::getHelpMessage() {
     return String("Usage: \n") +
-           "/getConfig : Get current configuration variables. Variables include:\n" +
+           "/getConfig    : Get current configuration variables.\n" +
+           "/flushBuffer  : Flush any buffered readings to the server.\n" +
            "/updateConfig : Update config variables. Variables include:\n" +
            "                physicalLocation : Description of location sent to server\n" +
            "                envPublishHost   : Host name to publish to\n" +
