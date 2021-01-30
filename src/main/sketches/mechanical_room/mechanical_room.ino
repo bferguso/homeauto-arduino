@@ -4,6 +4,7 @@
 
 #include "Esp8266RemoteStation.h"
 #include "PressButtonCallback.h"
+#include "PinStateCallback.h"
 
 /* BME280 includes */
 #include <Adafruit_Sensor.h>
@@ -18,6 +19,7 @@ String physicalLocation = "mechanical_room";
 
 PressButtonCallback onCallback(pin_relay, 0);
 PressButtonCallback offCallback(pin_relay, 1);
+PinStateCallback currentStateCallback(pin_relay);
 
 unsigned long delayTime;
 unsigned long sendEnvDelayTime;
@@ -35,6 +37,8 @@ void setup() {
     Serial.begin(9600);
     // We start by connecting to a WiFi network
 
+    espRemote.setCapability(F("environment_sensor"), F("BME280"));
+    espRemote.setCapability(F("makeup_fan_controller"), F("true"));
     espRemote.initServer();
     //espRemote.setPublishEndpoint("cabin.local", "/homeServer/logEnv?envJson=");
     Serial.println("ESP Config "+espRemote.getConfig());
@@ -45,6 +49,7 @@ void setup() {
 
     espRemote.registerServerUrl("/on", &onCallback);
     espRemote.registerServerUrl("/off", &offCallback);
+    espRemote.registerServerUrl("/state", &currentStateCallback);
 
     // BME
     if (!bme.begin()) {

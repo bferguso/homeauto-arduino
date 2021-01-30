@@ -11,6 +11,7 @@
 #include <EnvData.h>
 #include <RemoteServerCallback.h>
 #include "cppQueue.h"
+#include "ArduinoJson.h"
 
 class Esp8266RemoteStation {
 public:
@@ -29,6 +30,8 @@ public:
     String sendHttpPost(String host, int port, String url, String *payload);
     bool readyToSendEnv();
     bool readyToPrint();
+    void setCapability(String name, String value);
+    String getCapability(String name);
 
     // Web API functions
     void updateConfig();
@@ -47,10 +50,14 @@ private:
     // Default buffer time in millis to buffer readings. 0 === no buffering
     const int _defaultBufferInterval = 0;
 
+    StaticJsonDocument<512> configuration;
+
     int _httpPort;
     String _envPublishHost = "cabin.local";
+    int _envPublishPort = 80;
     String _envPublishUrl = "/homeServer/logEnv?envJson=";
     String _envPublishBufferedUrl = "/homeServer/logBufferedEnv";
+    String _configPublishUrl = "/homeServer/registerNode";
     char *_defaultSsid = "ferginzeys secure";
     char *_defaultPassword = "h0w3S0undV13w";
     String _physicalLocation;
@@ -65,6 +72,7 @@ private:
     // Get Env data JSON, URL encoded
     String getEnvJsonEncoded(EnvData data);
     String getEnvJson(EnvData data);
+    String getCapabilities();
     void callbackWrapper(RemoteServerCallback *callback);
     void sendEnvToServer(EnvData data);
 

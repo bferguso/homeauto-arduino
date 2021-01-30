@@ -4,6 +4,10 @@
 #include <EnvData.h>
 #include <Esp8266RemoteStation.h>
 #include <JsonEncoder.h>
+#include <WString.h>
+#include <pgmspace.h>
+
+extern HardwareSerial Serial;
 
 Esp8266RemoteStation::Esp8266RemoteStation(String physicalLocation) {
     _lastEnvSent = 0;
@@ -11,14 +15,22 @@ Esp8266RemoteStation::Esp8266RemoteStation(String physicalLocation) {
     _lastBufferFlush = 0;
     _httpPort = 80;
     _sendInterval = _defaultSendInterval;
+    configuration["sendInterval"] = _sendInterval;
     _printInterval = _defaultPrintInterval;
+    configuration["printInterval"] = _printInterval;
     _bufferInterval = _defaultBufferInterval;
+    configuration["bufferInterval"] = _bufferInterval;
     _physicalLocation = physicalLocation;
+    configuration["physicalLocation"] = _physicalLocation;
     Serial.begin(9600);
 }
 
 void Esp8266RemoteStation::initServer() {
     this->initServer(this->_defaultSsid, this->_defaultPassword);
+    Serial.println(getHelpMessage());
+    Serial.println();
+    String capabilities = getCapabilities();
+    sendHttpPost(_envPublishHost, _envPublishPort, _configPublishUrl, &capabilities);
 }
 
 void Esp8266RemoteStation::initServer(char *ssid, char *password) {
@@ -52,14 +64,12 @@ void Esp8266RemoteStation::initServer(char *ssid, char *password) {
     _server.on("/flushBuffer", std::bind(&Esp8266RemoteStation::flushBuffer, this));
     Serial.println("Registered path: /flushBuffer");
 
-    _server.on("/getConfig", [this]() { _server.send(200, "text/plain", getConfig()); });
+    _server.on("/getConfig", [this]() { _server.send(200, "application/json", getConfig()); });
     Serial.println("Registered path: /getConfig");
 
     _server.begin();
     Serial.print("Server started!\n");
 
-    Serial.println(getHelpMessage());
-    Serial.println();
 }
 
 String Esp8266RemoteStation::getConfig() {
@@ -75,6 +85,21 @@ String Esp8266RemoteStation::getConfig() {
            + JsonEncoder::append(JsonEncoder::wrapValue("netmask", String(WiFi.subnetMask().toString())))
            + JsonEncoder::append(JsonEncoder::wrapValue("gateway", String(WiFi.gatewayIP().toString())))
            + JsonEncoder::closeBrace;
+}
+
+void Esp8266RemoteStation::setCapability(String name, String value)
+{
+    if (!configuration.containsKey("capabilities"))
+    {
+        configuration.createNestedObject("capabilities");
+    }
+    configuration["capabilities"][name] = value;
+}
+
+
+String Esp8266RemoteStation::getCapability(String name)
+{
+    return configuration["capabilities"][name];
 }
 
 void Esp8266RemoteStation::flushBuffer()
@@ -291,7 +316,7 @@ String Esp8266RemoteStation::flushBufferedEnvData()
     if (data)
     {
         response = sendHttpPost(_envPublishHost, 80, _envPublishBufferedUrl, &data);
-        Serial.println("Buffer size "+response.length());
+        Serial.println("Buffer size "+String(response.length()));
         Serial.println("flushBufferedEnvData response: "+response);
     }
     _lastBufferFlush = millis();
@@ -446,4 +471,10 @@ String Esp8266RemoteStation::getBufferedEnvJson()
     payload += F("]");
     payload += JsonEncoder::closeBrace;
     return payload;
+}
+
+String Esp8266RemoteStation::getCapabilities() {
+    String jsonString = configuration.as<String>();
+    Serial.println("Configuration JSON: "+ String(jsonString));
+    return jsonString;
 }

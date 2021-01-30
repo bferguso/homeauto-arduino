@@ -37,6 +37,7 @@ void setup() {
 
     //espRemote.setSendInterval(5000);
     //espRemote.setBufferInterval(600000);
+    espRemote.setCapability(F("environment_sensor"), F("DHT22"));
     espRemote.initServer();
     //espRemote.setPublishEndpoint("cabin.local", "/homeServer/logEnv?envJson=");
     Serial.println("ESP Config " + espRemote.getConfig());
