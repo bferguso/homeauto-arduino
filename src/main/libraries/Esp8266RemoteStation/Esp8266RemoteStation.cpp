@@ -55,6 +55,9 @@ void Esp8266RemoteStation::initServer(char *ssid, char *password) {
     _server.on("/", [this]() { _server.send(200, "text/plain", getHelpMessage()); });
     Serial.println("Registered path: /");
 
+    _server.on("/reset", std::bind(&Esp8266RemoteStation::reset, this));
+    Serial.println("Registered path: /reset");
+
     _server.on("/help", [this]() { _server.send(200, "text/plain", getHelpMessage()); });
     Serial.println("Registered path: /help");
 
@@ -73,11 +76,19 @@ void Esp8266RemoteStation::initServer(char *ssid, char *password) {
 }
 
 String Esp8266RemoteStation::getConfig() {
-    return JsonEncoder::openBrace
+    String config = JsonEncoder::openBrace
            + JsonEncoder::wrapValue("location", _physicalLocation)
            + JsonEncoder::append(JsonEncoder::wrapValue("sendInterval", _sendInterval))
            + JsonEncoder::append(JsonEncoder::wrapValue("printInterval", _printInterval))
+           + JsonEncoder::append(JsonEncoder::wrapValue("bufferEnabled", bufferEnabled()));
+    if (bufferEnabled())
+    {
+        config = config
            + JsonEncoder::append(JsonEncoder::wrapValue("bufferInterval", _bufferInterval))
+           + JsonEncoder::append(JsonEncoder::wrapValue("bufferedReadings", _envQueue.getCount()))
+           + JsonEncoder::append(JsonEncoder::wrapValue("bufferAvailable", _envQueue.getRemainingCount()));
+    }
+    config = config
            + JsonEncoder::append(JsonEncoder::wrapValue("httpPort", _httpPort))
            + JsonEncoder::append(JsonEncoder::wrapValue("envPublishHost", _envPublishHost))
            + JsonEncoder::append(JsonEncoder::wrapValue("envPublishUrl", _envPublishUrl))
@@ -85,6 +96,7 @@ String Esp8266RemoteStation::getConfig() {
            + JsonEncoder::append(JsonEncoder::wrapValue("netmask", String(WiFi.subnetMask().toString())))
            + JsonEncoder::append(JsonEncoder::wrapValue("gateway", String(WiFi.gatewayIP().toString())))
            + JsonEncoder::closeBrace;
+    return config;
 }
 
 void Esp8266RemoteStation::setCapability(String name, String value)
@@ -97,9 +109,18 @@ void Esp8266RemoteStation::setCapability(String name, String value)
 }
 
 
+
 String Esp8266RemoteStation::getCapability(String name)
 {
     return configuration["capabilities"][name];
+}
+
+void Esp8266RemoteStation::reset()
+{
+    flushBufferedEnvData();
+    _server.send(200, "text/plain", "success");
+    delay(500);
+    ESP.reset();
 }
 
 void Esp8266RemoteStation::flushBuffer()
@@ -192,6 +213,7 @@ String Esp8266RemoteStation::getHelpMessage() {
     return String("Usage: \n") +
            "/getConfig    : Get current configuration variables.\n" +
            "/flushBuffer  : Flush any buffered readings to the server.\n" +
+           "/reset        : Flush buffer and reset the module.\n" +
            "/updateConfig : Update config variables. Variables include:\n" +
            "                physicalLocation : Description of location sent to server\n" +
            "                envPublishHost   : Host name to publish to\n" +

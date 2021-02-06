@@ -83,6 +83,7 @@ private:
     bool shouldFlushBuffer();
     bool bufferEnvData(EnvData *data);
     String flushBufferedEnvData();
+    void reset();
     // Get JSON for all buffered readings
     String getBufferedEnvJson();
 };
