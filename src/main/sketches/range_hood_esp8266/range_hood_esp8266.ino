@@ -5,6 +5,8 @@
 #include "Esp8266RemoteStation.h"
 #include "DHTReader.h"
 #include "DHT.h"
+#include "EmonLib.h"
+
 
 uint8_t pin_led = 2;
 uint8_t pin_range_hood_trigger = 13;
@@ -24,6 +26,7 @@ bool rangeHoodIsOn = false;
 DHT dht(12, DHT22);
 DHTReader reader(&dht);
 Esp8266RemoteStation espRemote("range_hood");
+EnergyMonitor emon1;
 
 void setup() {
     Serial.begin(9600);
@@ -39,12 +42,12 @@ void setup() {
     delayTime = 500;
     digitalWrite(pin_led, 1);
     //setMakeupActive(false);
+    emon1.current(A0, 111.1);             // Current: input pin, calibration.
 }
 
 EnvData data;
 
 void loop() {
-    delay(delayTime);
     if (espRemote.readyToSendEnv() || espRemote.readyToPrint())
     {
         data = reader.readEnv();
