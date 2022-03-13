@@ -75,6 +75,8 @@ private:
     String getCapabilities();
     void callbackWrapper(RemoteServerCallback *callback);
     void sendEnvToServer(EnvData data);
+    // Send the current configuration
+    void getConfigCallback();
 
     //
     // Reading Buffer functionality

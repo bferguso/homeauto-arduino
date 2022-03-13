@@ -15,6 +15,8 @@ class EnvData {
       float pressure = 0.0;
       float altitude = 0.0;
       float heatIndex = 0.0;
+      float voc = 0.0;
+      float co2 = 0.0;
 };
 
 #endif
