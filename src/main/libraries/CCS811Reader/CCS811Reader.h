@@ -15,7 +15,11 @@ public:
     CCS811Reader(CCS811 *ccs811);
 
     EnvData readEnv();
-    bool readEnv(EnvData *envData);
+    // Sets the environment data in the envData.
+    // IF not successful looks returns an error message of any errors that occurred
+    String readEnv(EnvData *envData);
+    bool calibrate(EnvData *envData);
+    String getSensorError();
 
 private:
     CCS811 *_ccs811;

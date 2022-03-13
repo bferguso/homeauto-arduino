@@ -66,7 +66,15 @@ void loop() {
     if (espRemote.readyToSendEnv() || espRemote.readyToPrint())
     {
         data = reader.readEnv();
-        ccs811Reader.readEnv(&data);
+        String errors = ccs811Reader.readEnv(&data);
+        if (errors != "")
+        {
+            Serial.println(errors);
+        }
+        else
+        {
+            Serial.println("No CCS811 errors");
+        }
         if (espRemote.readyToSendEnv())
         {
             espRemote.sendEnv(data);
