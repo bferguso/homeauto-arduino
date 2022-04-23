@@ -67,12 +67,17 @@ void Esp8266RemoteStation::initServer(char *ssid, char *password) {
     _server.on("/flushBuffer", std::bind(&Esp8266RemoteStation::flushBuffer, this));
     Serial.println("Registered path: /flushBuffer");
 
-    _server.on("/getConfig", [this]() { _server.send(200, "application/json", getConfig()); });
+    _server.on("/getConfig", std::bind(&Esp8266RemoteStation::getConfigCallback, this));
     Serial.println("Registered path: /getConfig");
 
     _server.begin();
     Serial.print("Server started!\n");
 
+}
+
+void Esp8266RemoteStation::getConfigCallback() {
+    _server.sendHeader("Access-Control-Allow-Origin", "http://cabin.local");
+    _server.send(200, "application/json", getConfig());
 }
 
 String Esp8266RemoteStation::getConfig() {
@@ -133,6 +138,7 @@ void Esp8266RemoteStation::flushBuffer()
         flushPostResponse = "{\"success\": false}";
     }
     //Serial.println("Response: "+flushPostResponse);
+    _server.sendHeader("Access-Control-Allow-Origin", "*");
     _server.send(responseCode, "application/json", flushPostResponse);
 }
 
@@ -302,7 +308,7 @@ bool Esp8266RemoteStation::bufferEnabled()
 
 bool Esp8266RemoteStation::shouldFlushBuffer()
 {
-    return bufferEnabled() && (_envQueue.isFull() || (millis() - _lastBufferFlush) > _bufferInterval);
+    return bufferEnabled() && (_envQueue.isFull() || (!_envQueue.isEmpty() && (millis() - _lastBufferFlush) > _bufferInterval));
 }
 
 bool Esp8266RemoteStation::bufferEnvData(EnvData *data)
@@ -349,8 +355,13 @@ String Esp8266RemoteStation::sendHttpRequest(String host, int port, String reque
     WiFiClient client;
 
     if (!client.connect(host, port)) {
-        Serial.println("connection failed");
-        return String("");
+        Serial.println("connection failed - trying again");
+        delay(500);
+        if (!client.connect(host, port))
+        {
+            Serial.println("connection failed - unable to send");
+            return String("");
+        }
     }
 
     // This will send the request to the server
@@ -379,8 +390,13 @@ String Esp8266RemoteStation::sendHttpPost(String host, int port, String url, Str
     WiFiClient client;
 
     if (!client.connect(host, port)) {
-        Serial.println("connection failed");
-        return "";
+        Serial.println("connection failed - trying again");
+        delay(500);
+        if (!client.connect(host, port))
+        {
+            Serial.println("connection failed - unable to send");
+            return "";
+        }
     }
     Serial.println("Connected!");
 
@@ -434,6 +450,14 @@ void Esp8266RemoteStation::printEnv(EnvData data) {
         Serial.print(data.heatIndex);
         Serial.print(F("°C"));
     }
+    if (data.voc) {
+        Serial.print(F(" VOC: "));
+        Serial.print(data.voc);
+    }
+    if (data.co2) {
+        Serial.print(F(" CO2: "));
+        Serial.print(data.co2);
+    }
     Serial.println();
 }
 
@@ -444,6 +468,8 @@ String Esp8266RemoteStation::getEnvJsonEncoded(EnvData data) {
            + JsonEncoder::append(JsonEncoder::encodeValue("humidity", data.humidity))
            + JsonEncoder::append(JsonEncoder::encodeValue("pressure", data.pressure))
            + JsonEncoder::append(JsonEncoder::encodeValue("heatIndex", data.heatIndex))
+           + JsonEncoder::append(JsonEncoder::encodeValue("voc", data.voc))
+           + JsonEncoder::append(JsonEncoder::encodeValue("co2", data.co2))
            + JsonEncoder::append(JsonEncoder::encodeValue("millisOffset", data.millisOffset))
            + JsonEncoder::encodedCloseBrace;
 }
@@ -455,6 +481,8 @@ String Esp8266RemoteStation::getEnvJson(EnvData data) {
            + JsonEncoder::append(JsonEncoder::wrapValue("humidity", data.humidity))
            + JsonEncoder::append(JsonEncoder::wrapValue("pressure", data.pressure))
            + JsonEncoder::append(JsonEncoder::wrapValue("heatIndex", data.heatIndex))
+           + JsonEncoder::append(JsonEncoder::wrapValue("voc", data.voc))
+           + JsonEncoder::append(JsonEncoder::wrapValue("co2", data.co2))
            + JsonEncoder::append(JsonEncoder::wrapValue("millisOffset", data.millisOffset))
            + JsonEncoder::closeBrace;
 }

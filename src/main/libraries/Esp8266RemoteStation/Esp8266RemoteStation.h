@@ -58,8 +58,8 @@ private:
     String _envPublishUrl = "/homeServer/logEnv?envJson=";
     String _envPublishBufferedUrl = "/homeServer/logBufferedEnv";
     String _configPublishUrl = "/homeServer/registerNode";
-    char *_defaultSsid = "ferginzeys secure";
-    char *_defaultPassword = "h0w3S0undV13w";
+    char *_defaultSsid = "<wifi SSID>";
+    char *_defaultPassword = "<Wifi Password>";
     String _physicalLocation;
     int _bufferInterval;
     int _sendInterval;
@@ -75,6 +75,8 @@ private:
     String getCapabilities();
     void callbackWrapper(RemoteServerCallback *callback);
     void sendEnvToServer(EnvData data);
+    // Send the current configuration
+    void getConfigCallback();
 
     //
     // Reading Buffer functionality
